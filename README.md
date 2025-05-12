@@ -10,7 +10,7 @@
   - [Quick Demo with Kafka console commands](#quick-demo-with-kafka-console-commands)
     - [Produce](#produce)
     - [Consume](#consume)
-  - [Programatic Clients](#programatic-clients)
+  - [Programmatic Clients](#programmatic-clients)
     - [Produce](#produce-1)
     - [Consume](#consume-1)
   - [Cleanup](#cleanup)
@@ -150,7 +150,7 @@ And run same command, posting a new message in the producer terminal.
 
 You should be able to see the message unencrypted in the terminal with consumer before but decrypted in the new one.
 
-## Programatic Clients
+## Programmatic Clients
 
 Let's first register our AVRO schema for a new topic `demo-topic` (as usual replace the `encrypt.kms.key.id` parameter by the one applicable in your case):
 
