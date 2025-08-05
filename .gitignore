@@ -4,8 +4,8 @@
 */build/*
 
 # Gradle
-KafkaConsumer/.gradle/
-KafkaProducer/.gradle/
+KafkaConsumer/.gradle/*
+KafkaProducer/.gradle/*
 build/
 !gradle/wrapper/gradle-wrapper.jar
 
