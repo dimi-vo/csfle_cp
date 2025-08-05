@@ -25,6 +25,10 @@ The code and/or instructions here available are **NOT** intended for production 
 It's only meant to serve as an example or reference and does not replace the need to follow actual and official
 documentation of referenced products.
 
+## Prerequisite
+
+There is already a cluster deployed in CC that is using public networking.
+
 ## AWS KMS Setup
 
 To set up AWS KMS (Key Management Service) and get your `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, follow these
