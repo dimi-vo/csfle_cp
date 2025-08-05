@@ -21,8 +21,8 @@ class KafkaProducer {
             val kafkaProducer = KafkaProducer<String, PersonalData>(properties.configureProperties())
 
             Thread.sleep(10000)
-            val target_topic: String = "demo-topic"
-            logger.info("Kafka Producer started, target topic is $target_topic")
+            val targetTopic: String = "demo-topic"
+            logger.info("Kafka Producer started, target topic is $targetTopic")
 
             data.forEach { event ->
 
@@ -30,14 +30,15 @@ class KafkaProducer {
                 personalData.setTimestamp(SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'.'SSS'Z'").format(Date()))
 
                 try {
-                    kafkaProducer.send(ProducerRecord("$target_topic", personalData.getId(), personalData),
+                    kafkaProducer.send(
+                        ProducerRecord(targetTopic, personalData.getId(), personalData),
                     ) { m: RecordMetadata, e: Exception? ->
                         when (e) {
                             null -> logger.info("event produced to ${m.topic()}")
                             else -> logger.error("oh no, error occurred: $e")
                         }
                     }
-                } catch ( e: SerializationException){
+                } catch (e: SerializationException) {
 
                     logger.error("${e.cause} with stack trace ${e.printStackTrace()}")
                 }

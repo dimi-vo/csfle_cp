@@ -1,44 +1,50 @@
-# CSFLE in CP
+# Client Side Field Level Encryption (CSFLE) in a hybrid setup
+
+We will demo the use of CSFLE with a self-managed SR that will be deployed in Docker.
 
 - [CSFLE in CP](#csfle-in-cp)
-  - [Disclaimer](#disclaimer)
-  - [AWS KMS Setup](#aws-kms-setup)
-    - [Create an IAM User (to get credentials)](#create-an-iam-user-to-get-credentials)
-    - [Create a KMS Key](#create-a-kms-key)
-    - [Test with the AWS CLI](#test-with-the-aws-cli)
-  - [Start CP](#start-cp)
-  - [Quick Demo with Kafka console commands](#quick-demo-with-kafka-console-commands)
-    - [Produce](#produce)
-    - [Consume](#consume)
-  - [Java Clients](#java-clients)
-    - [Produce](#produce-1)
-    - [Consume](#consume-1)
-  - [Cleanup](#cleanup)
+    - [Disclaimer](#disclaimer)
+    - [AWS KMS Setup](#aws-kms-setup)
+        - [Create an IAM User (to get credentials)](#create-an-iam-user-to-get-credentials)
+        - [Create a KMS Key](#create-a-kms-key)
+        - [Test with the AWS CLI](#test-with-the-aws-cli)
+    - [Start CP](#start-cp)
+    - [Quick Demo with Kafka console commands](#quick-demo-with-kafka-console-commands)
+        - [Produce](#produce)
+        - [Consume](#consume)
+    - [Java Clients](#java-clients)
+        - [Produce](#produce-1)
+        - [Consume](#consume-1)
+    - [Cleanup](#cleanup)
 
 This repository is based on the original work for CC [here](https://github.com/pneff93/csfle).
 
 ## Disclaimer
 
-The code and/or instructions here available are **NOT** intended for production usage. 
-It's only meant to serve as an example or reference and does not replace the need to follow actual and official documentation of referenced products.
+The code and/or instructions here available are **NOT** intended for production usage.
+It's only meant to serve as an example or reference and does not replace the need to follow actual and official
+documentation of referenced products.
 
 ## AWS KMS Setup
 
-To set up AWS KMS (Key Management Service) and get your `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, follow these steps:
+To set up AWS KMS (Key Management Service) and get your `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, follow these
+steps:
 
 ### Create an IAM User (to get credentials)
 
 These credentials allow access to AWS services (including KMS):
+
 1. Log in to the AWS Console: https://console.aws.amazon.com/
 2. Go to IAM (Identity and Access Management).
 3. Click Users → Add users.
 4. Enter username.
 5. Click Next: Permissions:
-- Choose "Attach policies directly"
-- Attach policy `AWSKeyManagementServicePowerUser`.
+    - Choose "Attach policies directly"
+    - Attach policy `AWSKeyManagementServicePowerUser`.
+
 6. Click through to finish and download the .csv file or copy:
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
 
 ### Create a KMS Key
 
@@ -51,11 +57,12 @@ These credentials allow access to AWS services (including KMS):
 
 ### Test with the AWS CLI
 
-Set your credentials temporarily (the strings bellow are random and you will need to replace by the ones you saved before, as well as the AWS region you will be using):
+Set your credentials temporarily (the strings bellow are random and you will need to replace by the ones you saved
+before, as well as the AWS region you will be using):
 
 ```shell
-export AWS_ACCESS_KEY_ID=7IW0BOS9GQETSSNJK70N
-export AWS_SECRET_ACCESS_KEY=BZ8XW9NXOO9S8XO7T313O8J5OIIPSEAD+LHDI8EQ
+export AWS_ACCESS_KEY_ID=<access-key-id>
+export AWS_SECRET_ACCESS_KEY=<secret>
 export AWS_DEFAULT_REGION=eu-west-1
 ```
 
@@ -69,90 +76,42 @@ Encrypt a string (again the key-id presented is a random string and should be re
 
 ```shell
 echo "secret" | aws kms encrypt \
-  --key-id k6q5x2v5-4l0qg-gy6x5anf8-xkais4-bczf \
+  --key-id <the-id-of-the-key-you-created-in-aws> \
   --plaintext fileb:///dev/stdin \
   --output text \
   --query CiphertextBlob | base64 --decode
 ```
 
-## Start CP
+## Start Schema Registry
 
-Run:
+We will use a local schema registry, i.e., deployed in docker, and we will configure it to connect to our CC.
+
+For simplicity, we do not use private networking, we use a standard cluster on AWS with public connectivity.
+
+To complete the setup you will need
+
+1. the bootstrap URL of your cluster.
+2. to create an API Key for Schema Registry. For testing purposes, you can use your user account as principal for the
+   key.
+
+Once you have this information proceed to update the `compose.yml` file.
+
+```yml
+SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: <the-bootstrap-url-of-your-cluster>
+SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required username='<CC-API-KEY>' password='CC-API-SECRET';"
+```
+
+Then start with SR:
 
 ```shell
 docker compose up -d
 ```
 
-You can open [Control Center](http://localhost:9021/) after some seconds. Check logs meanwhile:
-
-```shell
-docker compose logs -f
-```
-
-## Quick Demo with Kafka console commands
-
-### Produce
-
-Run in a new terminal (replace the random ARN string being used by yours):
-
-```shell
-kafka-json-schema-console-producer \
-  --broker-list localhost:9091 \
-  --topic demo \
-  --property value.schema='{"type":"object","properties":{"f1":{"type":"string", "confluent:tags": ["PII"]}}}' --property value.rule.set='{ "domainRules": [ { "name": "encryptPII", "type": "ENCRYPT", "tags":["PII"], "params": { "encrypt.kek.name": "demo", "encrypt.kms.type": "aws-kms", "encrypt.kms.key.id": "arn:aws:kms:eu-west-1:188133902807:key/k6q5x2v5-4l0qg-gy6x5anf8-xkais4-bczf" }, "onFailure": "ERROR,NONE"}]}'
-```
-
-And try to produce to it:
-
-```json
-{"f1":"test1"}
-```
-
-You should get an error `The security token included in the request is invalid`.
-
-So now export the variables again (replace strings accordingly):
-
-```shell
-export AWS_ACCESS_KEY_ID=7IW0BOS9GQETSSNJK70N
-export AWS_SECRET_ACCESS_KEY=BZ8XW9NXOO9S8XO7T313O8J5OIIPSEAD+LHDI8EQ
-export AWS_DEFAULT_REGION=eu-west-1
-```
-
-And run the producer again and pass the sample message.
-
-You can check the Control Center and should see the message field encrypted for the `demo` topic.
-
-### Consume
-
-Keep the producer running and open a parallel terminal window and execute:
-
-```shell
-kafka-json-schema-console-consumer --topic demo --bootstrap-server localhost:9091
-```
-
-Produce another message into the topic. It can be the same one as before.
-
-You can see consumer won't be able to decrypt the message field value and will present the value encrypted. Something like this (the same you see in Control Center):
-
-```json
-{"f1":"FaYu4XXxB0g2pTG9LiOhWOao/j9Jqe7Th9Fy4ilbN1+W"}
-```
-
-Now in another terminal export the AWS variables first (don't forget to replace by your values):
-
-```shell
-export AWS_ACCESS_KEY_ID=7IW0BOS9GQETSSNJK70N
-export AWS_SECRET_ACCESS_KEY=BZ8XW9NXOO9S8XO7T313O8J5OIIPSEAD+LHDI8EQ
-export AWS_DEFAULT_REGION=eu-west-1
-```
-
-And run same command, posting a new message in the producer terminal.
-
-You should be able to see the message unencrypted in the terminal with consumer before but decrypted in the new one.
-
 ## Java Clients
 
-Let's first register our AVRO schema for a new topic `demo-topic` (as usual replace the `encrypt.kms.key.id` parameter by the one applicable in your case):
+Let's first register our AVRO schema for a new topic `demo-topic`.
+
+Replace the `encrypt.kms.key.id` parameter by the one applicable in your case:
 
 ```shell
 curl --request POST --url 'http://localhost:8081/subjects/demo-topic-value/versions' --header 'Content-Type: application/vnd.schemaregistry.v1+json' \
@@ -169,7 +128,7 @@ curl --request POST --url 'http://localhost:8081/subjects/demo-topic-value/versi
           "tags": ["PII"],
           "params": {
             "encrypt.kek.name": "demo-topic-kek",
-            "encrypt.kms.key.id": "arn:aws:kms:eu-west-1:188133902807:key/k6q5x2v5-4l0qg-gy6x5anf8-xkais4-bczf",
+            "encrypt.kms.key.id": "<the-arn-of-the-key-you-created-in-aws>",
             "encrypt.kms.type": "aws-kms"
           },
           "onFailure": "ERROR,NONE"
@@ -179,35 +138,43 @@ curl --request POST --url 'http://localhost:8081/subjects/demo-topic-value/versi
   }'
   ```
 
-We are registering the [schema of our Kafka clients](./KafkaConsumer/src/main/avro/personalData.avsc) but specifying the encryption rule for the field `birthday` tagged as `PII`.
+We are registering the [schema of our Kafka clients](./KafkaConsumer/src/main/avro/personalData.avsc) but specifying the
+encryption rule for the field `birthday` tagged as `PII`.
 
 ### Produce
 
 Let's open a new terminal window and export our variables (replace string values as required):
 
 ```shell
-export AWS_ACCESS_KEY_ID=7IW0BOS9GQETSSNJK70N
-export AWS_SECRET_ACCESS_KEY=BZ8XW9NXOO9S8XO7T313O8J5OIIPSEAD+LHDI8EQ
+export AWS_ACCESS_KEY_ID=<access-key-id>
+export AWS_SECRET_ACCESS_KEY=<secret>
 export AWS_DEFAULT_REGION=eu-west-1
 ```
+
+Then, you will need to update the [ProducerProperties.kt](KafkaProducer/src/main/kotlin/ProducerProperties.kt) and
+the [ConsumerProperties](KafkaConsumer/src/main/kotlin/ConsumerProperties.kt) with the bootstrap URL so that the client
+applications can connect to the cluster.
+
+The credentials for the AWS KMS will be retrieved from the env vars.
 
 And then run (make sure to use Java 17):
 
 ```shell
 cd KafkaProducer
-gradle build
-gradle run
+./gradlew build
+./gradlew run
 ```
 
-After some seconds you should see on Control Center the messages with `birthday` encrypted being produced to our topic `demo-topic`.
+After some seconds you should see on Control Center the messages with `birthday` encrypted being produced to our topic
+`demo-topic`.
 
 ### Consume
 
 Again in another terminal in parallel (and replacing variables as before):
 
 ```shell
-export AWS_ACCESS_KEY_ID=7IW0BOS9GQETSSNJK70N
-export AWS_SECRET_ACCESS_KEY=BZ8XW9NXOO9S8XO7T313O8J5OIIPSEAD+LHDI8EQ
+export AWS_ACCESS_KEY_ID=<access-key-id>
+export AWS_SECRET_ACCESS_KEY=<secret>
 export AWS_DEFAULT_REGION=eu-west-1
 ```
 
@@ -215,8 +182,8 @@ We execute the consumer:
 
 ```shell
 cd KafkaConsumer
-gradle build
-gradle run
+./gradlew build
+./gradlew run
 ```
 
 You should be able to consume the messages with the field decrypted.

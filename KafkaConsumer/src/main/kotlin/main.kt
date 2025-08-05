@@ -1,5 +1,3 @@
-
-
 fun main() {
 
     val kafkaConsumer = KafkaConsumer()

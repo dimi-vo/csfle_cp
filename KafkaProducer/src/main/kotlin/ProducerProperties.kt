@@ -1,35 +1,39 @@
-import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.common.config.SaslConfigs
 import org.apache.logging.log4j.kotlin.logger
 import java.util.*
-import java.lang.System;
 
 class ProducerProperties {
 
     private val logger = logger(javaClass.name)
 
-    fun configureProperties() : Properties{
+    fun configureProperties(): Properties {
 
         val settings = Properties()
-        settings.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-        settings.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "io.confluent.kafka.serializers.KafkaAvroSerializer")
-
-        val broker_boostrap: String = "localhost:9091"
-        val schema_registry_url: String = "http://localhost:8081"
-
-        settings.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "$broker_boostrap")
-
-        settings.setProperty("schema.registry.url", "$schema_registry_url")
-
+        settings.setProperty(
+            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+            "org.apache.kafka.common.serialization.StringSerializer"
+        )
+        settings.setProperty(
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+            "io.confluent.kafka.serializers.KafkaAvroSerializer"
+        )
+        settings.setProperty("security.protocol", "SASL_SSL")
+        settings.setProperty("sasl.mechanism", "PLAIN")
+        settings.setProperty("schema.registry.url", "http://localhost:8081")
         // Required since we manually create schemas
         settings.setProperty("use.latest.version", "true")
-        settings.setProperty("auto.register.schemas","false")
-
+        settings.setProperty("auto.register.schemas", "false")
+        //TODO: Provide the correct Bootstrap URL
+        settings.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "pkc-<env>.eu-central-1.aws.confluent.cloud:9092")
+        //TODO: Provide the API KEY and SECRET
+        settings.setProperty(
+            "sasl.jaas.config",
+            "org.apache.kafka.common.security.plain.PlainLoginModule required username='API-KEY' password='API-SECRET';"
+        )
 
         settings.stringPropertyNames()
-                .associateWith {settings.getProperty(it)}
-                .forEach { logger.info(String.format("%s", it)) }
+            .associateWith { settings.getProperty(it) }
+            .forEach { logger.info(String.format("%s", it)) }
         return settings
     }
 }

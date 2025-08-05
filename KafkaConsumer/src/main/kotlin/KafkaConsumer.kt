@@ -10,11 +10,12 @@ class KafkaConsumer {
 
     fun consumeEvents(properties: ConsumerProperties) {
 
-        val consumer = org.apache.kafka.clients.consumer.KafkaConsumer<String, PersonalData>(properties.configureProperties())
-        val target_topic: String = "demo-topic"
-        val consumer_group: String = "demo-topic-consumer-group"
-        logger.info("Kafka Consumer started, target topic is $target_topic, consumer group is $consumer_group")
-        consumer.subscribe(listOf("$target_topic"))
+        val consumer =
+            org.apache.kafka.clients.consumer.KafkaConsumer<String, PersonalData>(properties.configureProperties())
+        val targetTopic: String = "demo-topic"
+        val consumerGroup: String = "demo-topic-consumer-group"
+        logger.info("Kafka Consumer started, target topic is $targetTopic, consumer group is $consumerGroup")
+        consumer.subscribe(listOf(targetTopic))
 
         while (true) {
 

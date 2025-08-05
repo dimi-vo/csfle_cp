@@ -1,4 +1,3 @@
-
 import com.csfleExample.PersonalData
 import kotlinx.coroutines.runBlocking
 
