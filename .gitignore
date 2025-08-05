@@ -2,3 +2,46 @@
 .vscode
 
 */build/*
+
+# Gradle
+KafkaConsumer/.gradle/
+KafkaProducer/.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+
+# Compiled class files
+*.class
+
+# Generated files
+bin/
+gen/
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+
+# Kotlin specific
+*.kotlin_module
+
+# Java Module System
+*.jmod
+
+# IntelliJ run configurations (optional: keep if you want team to share configs)
+runConfigurations/
+
+# VS Code, just in case
+.vscode/
