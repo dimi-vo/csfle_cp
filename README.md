@@ -61,8 +61,7 @@ These credentials allow access to AWS services (including KMS):
 
 ### Test with the AWS CLI
 
-Set your credentials temporarily (the strings bellow are random and you will need to replace by the ones you saved
-before, as well as the AWS region you will be using):
+Set your credentials temporarily:
 
 ```shell
 export AWS_ACCESS_KEY_ID=<access-key-id>
